@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeckardZ46</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-card: #111111;
+            --bg-card-hover: #161616;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --accent: #ff0066;
+            --accent-dim: rgba(255, 0, 102, 0.12);
+            --border: #222222;
+            --border-hover: #333333;
+            --grid-color: #1a1a1a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            cursor: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Custom Cursor */
+        .cursor-wrap {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 10001;
+            will-change: transform;
+        }
+
+        .cursor-block {
+            width: 10px;
+            height: 16px;
+            background: var(--accent);
+            transition: width 0.15s ease, height 0.15s ease, transform 0.15s ease;
+        }
+
+        .cursor-block.hover {
+            width: 12px;
+            height: 12px;
+            transform: rotate(45deg);
+        }
+
+        .cursor-block.clicking {
+            transform: scale(0.7);
+        }
+
+        .cursor-block.hover.clicking {
+            transform: rotate(45deg) scale(0.7);
+        }
+
+        /* CRT Scanlines */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.1),
+                rgba(0, 0, 0, 0.1) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.6;
+        }
+
+        .crt-flicker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 102, 0.01);
+            pointer-events: none;
+            z-index: 9998;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.01; }
+            50% { opacity: 0.03; }
+            100% { opacity: 0.01; }
+        }
+
+        /* Background Grid */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.5;
+        }
+
+        /* Glows */
+        .glow {
+            position: fixed;
+            border-radius: 50%;
+            background: var(--accent);
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-1 {
+            width: 400px;
+            height: 400px;
+            top: -150px;
+            left: -150px;
+            opacity: 0.03;
+        }
+
+        .glow-2 {
+            width: 500px;
+            height: 500px;
+            bottom: -200px;
+            right: -200px;
+            opacity: 0.02;
+        }
+
+        /* Particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: float 8s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+            50% { transform: translateY(-20px) scale(1.5); opacity: 0.6; }
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(1400px, calc(100% - 40px));
+            background: rgba(17, 17, 17, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1.5px solid var(--accent);
+            border-radius: 12px;
+            padding: 14px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 0 20px rgba(255, 0, 102, 0.1);
+        }
+
+        .nav-logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.3s;
+            position: relative;
+            cursor: none;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--accent);
+        }
+
+        .nav-links a.active::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 1px;
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
+            cursor: none;
+            padding: 4px;
+        }
+
+        .hamburger span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: var(--accent);
+            transition: all 0.3s;
+        }
+
+        /* Main Layout */
+        .container {
+            position: relative;
+            z-index: 1;
+            width: min(1400px, 100% - 40px);
+            margin: 0 auto;
+            padding: 120px 0 80px;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 60px;
+        }
+
+        /* Profile Card */
+        .profile-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px 36px;
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .profile-card:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 0 40px rgba(255, 0, 102, 0.06);
+        }
+
+        .avatar {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 28px;
+        }
+
+        .avatar-ring {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 rgba(255, 0, 102, 0); }
+            50% { box-shadow: 0 0 20px rgba(255, 0, 102, 0.2); }
+        }
+
+        .avatar-ring::before {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border-radius: 50%;
+            border: 1px solid var(--accent);
+            opacity: 0.5;
+        }
+
+        .avatar-inner {
+            font-size: 42px;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .name {
+            text-align: center;
+            font-size: clamp(24px, 2.5vw, 32px);
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .title {
+            text-align: center;
+            font-size: clamp(13px, 1.2vw, 16px);
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 28px;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border-hover);
+            margin: 0 auto 28px;
+            width: 80%;
+        }
+
+        .bio {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: clamp(12px, 1vw, 14px);
+            line-height: 1.8;
+            margin-bottom: 28px;
+        }
+
+        .skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 28px;
+        }
+
+        .skill-tag {
+            padding: 7px 16px;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 600;
+            transition: all 0.3s;
+            cursor: none;
+        }
+
+        .skill-tag:hover {
+            background: var(--accent-dim);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 0, 102, 0.15);
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .social-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: color 0.3s;
+            cursor: none;
+        }
+
+        .social-links a:hover {
+            color: var(--accent);
+        }
+
+        /* Content */
+        .content {
+            padding-top: 10px;
+        }
+
+        .section-title {
+            font-size: clamp(22px, 2vw, 28px);
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .title-underline {
+            width: 60px;
+            height: 3px;
+            background: var(--accent);
+            margin-bottom: 40px;
+            border-radius: 2px;
+        }
+
+        /* Project Cards */
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px 36px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: none;
+        }
+
+        .project-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent);
+            opacity: 0.8;
+            transition: width 0.3s;
+        }
+
+        .project-card:hover {
+            border-color: var(--border-hover);
+            transform: translateX(5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .project-card:hover::before {
+            width: 6px;
+        }
+
+        .project-name {
+            font-size: clamp(18px, 1.5vw, 22px);
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .project-arrow {
+            color: var(--accent);
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .project-card:hover .project-arrow {
+            opacity: 1;
+            transform: translateX(5px);
+        }
+
+        .project-desc {
+            color: var(--text-secondary);
+            font-size: clamp(13px, 1vw, 14px);
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
+        .project-tags {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .project-tag {
+            padding: 5px 14px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: all 0.3s;
+        }
+
+        .project-card:hover .project-tag {
+            border-color: var(--border-hover);
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(13, 13, 13, 0.95);
+            border-top: 1px solid var(--border);
+            padding: 12px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            font-size: 12px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff66;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            color: #00ff66;
+            font-weight: 600;
+        }
+
+        .footer-info {
+            color: var(--text-muted);
+        }
+
+        .footer-copy {
+            color: var(--text-muted);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 3px;
+            opacity: 0.5;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            opacity: 1;
+        }
+
+        /* Mobile Menu */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(1400px, calc(100% - 40px));
+            background: rgba(17, 17, 17, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1.5px solid var(--accent);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 99;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .mobile-menu a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            cursor: none;
+        }
+
+        .mobile-menu a:hover,
+        .mobile-menu a.active {
+            color: var(--accent);
+        }
+
+        .mobile-menu.open {
+            display: flex;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+                padding-top: 100px;
+            }
+
+            .profile-card {
+                position: static;
+                max-width: 500px;
+                margin: 0 auto;
+                width: 100%;
+            }
+
+            .content {
+                max-width: 700px;
+                margin: 0 auto;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hamburger {
+                display: flex;
+            }
+
+            .footer {
+                padding: 10px 20px;
+                flex-direction: column;
+                gap: 6px;
+                font-size: 11px;
+            }
+
+            .container {
+                padding-bottom: 100px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 12px 20px;
+            }
+
+            .profile-card {
+                padding: 36px 24px;
+            }
+
+            .project-card {
+                padding: 24px;
+            }
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor-wrap" id="cursorWrap">
+        <div class="cursor-block" id="cursorBlock"></div>
+    </div>
+
+    <!-- CRT Effects -->
+    <div class="crt-overlay"></div>
+    <div class="crt-flicker"></div>
+
+    <!-- Background -->
+    <div class="bg-grid"></div>
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="particles" id="particles"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-logo"></div>
+        <ul class="nav-links"></ul>
+        <button class="hamburger" id="hamburger" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu"></div>
+
+    <!-- Main -->
+    <div class="container">
+        <aside class="profile-card">
+            <div class="avatar">
+                <div class="avatar-ring">
+                    <span class="avatar-inner"></span>
+                </div>
+            </div>
+            <h1 class="name"></h1>
+            <p class="title"></p>
+            <div class="divider"></div>
+            <p class="bio"></p>
+            <div class="skills"></div>
+            <div class="social-links"></div>
+        </aside>
+
+        <main class="content">
+            <h2 class="section-title"></h2>
+            <div class="title-underline"></div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="status">
+            <span class="status-dot"></span>
+            <span class="status-text"></span>
+        </div>
+        <span class="footer-info"></span>
+        <span class="footer-copy"></span>
+    </footer>
+
+    <script src="content.js"></script>
+    <script>
+        // Render content from content.js
+        (function() {
+            const d = CONTENT;
+
+            document.title = d.meta.title;
+
+            // Nav
+            document.querySelector('.nav-logo').innerHTML = d.nav.logo;
+            document.querySelector('.nav-links').innerHTML = d.nav.links.map(l =>
+                `<li><a href="${l.href}" class="${l.active ? 'active' : ''}">${l.label}</a></li>`
+            ).join('');
+            document.getElementById('mobileMenu').innerHTML = d.nav.links.map(l =>
+                `<a href="${l.href}" class="${l.active ? 'active' : ''}">${l.label}</a>`
+            ).join('');
+
+            // Profile
+            document.querySelector('.avatar-inner').innerHTML = d.profile.avatar;
+            document.querySelector('.name').textContent = d.profile.name;
+            document.querySelector('.title').textContent = d.profile.title;
+            document.querySelector('.bio').innerHTML = d.profile.bio.join('<br>');
+            document.querySelector('.skills').innerHTML = d.profile.skills.map(s =>
+                `<span class="skill-tag">${s}</span>`
+            ).join('');
+            document.querySelector('.social-links').innerHTML = d.profile.socials.map(s =>
+                `<a href="${s.url}" target="_blank">${s.name}</a>`
+            ).join('');
+
+            // Projects
+            document.querySelector('.section-title').textContent = d.projects.sectionTitle;
+            const contentEl = document.querySelector('.content');
+            const projectsHTML = d.projects.items.map(p => `
+            <article class="project-card">
+                <h3 class="project-name">
+                    ${p.name}
+                    <span class="project-arrow">→</span>
+                </h3>
+                <p class="project-desc">
+                    ${p.desc}
+                </p>
+                <div class="project-tags">
+                    ${p.tags.map(t => `<span class="project-tag">${t}</span>`).join('')}
+                </div>
+            </article>`
+            ).join('');
+            contentEl.querySelector('.title-underline').insertAdjacentHTML('afterend', projectsHTML);
+
+            // Footer
+            document.querySelector('.status-text').textContent = d.footer.status;
+            document.querySelector('.footer-info').textContent = d.footer.info;
+            document.querySelector('.footer-copy').textContent = d.footer.copy;
+        })();
+    </script>
+    <script>
+        // Particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 8 + 's';
+            particle.style.animationDuration = (6 + Math.random() * 4) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Custom Cursor
+        const cursorWrap = document.getElementById('cursorWrap');
+        const cursorBlock = document.getElementById('cursorBlock');
+        let mouseX = 0, mouseY = 0;
+        let wrapX = 0, wrapY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function animateCursor() {
+            wrapX += (mouseX - wrapX) * 0.2;
+            wrapY += (mouseY - wrapY) * 0.2;
+            cursorWrap.style.transform = `translate(${wrapX}px, ${wrapY}px)`;
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        // Hover states: on interactive elements, rotate to diamond
+        const interactiveElements = document.querySelectorAll('a, button, .project-card, .skill-tag');
+
+        interactiveElements.forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                cursorBlock.classList.add('hover');
+            });
+            el.addEventListener('mouseleave', () => {
+                cursorBlock.classList.remove('hover');
+            });
+        });
+
+        document.addEventListener('mousedown', () => cursorBlock.classList.add('clicking'));
+        document.addEventListener('mouseup', () => cursorBlock.classList.remove('clicking'));
+
+        // Mobile Menu
+        const hamburger = document.getElementById('hamburger');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        hamburger.addEventListener('click', () => {
+            mobileMenu.classList.toggle('open');
+        });
+
+        // Close mobile menu when clicking a link
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('open');
+            });
+        });
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!hamburger.contains(e.target) && !mobileMenu.contains(e.target)) {
+                mobileMenu.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>
