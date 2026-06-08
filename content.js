@@ -32,8 +32,8 @@ const CONTENT = {
         skills: ["C++", "Game Engine", "Vulkan", "OpenGL", "Graphics"],
         socials: [
             { name: "GitHub", url: "https://github.com/DeckardZ46" },
-            { name: "Twitter", url: "#" },
-            { name: "LinkedIn", url: "#" }
+            { name: "bilibili", url: "#" },
+            { name: "Zhihu", url: "https://www.zhihu.com/people/lang-wei-xian-he-lu-ye/" }
         ]
     },
 

@@ -34,6 +34,8 @@
             position: relative;
             cursor: none;
             -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Custom Cursor */
@@ -254,7 +256,8 @@
             z-index: 1;
             width: min(1400px, 100% - 40px);
             margin: 0 auto;
-            padding: 120px 0 80px;
+            padding: 120px 0 0;
+            flex: 1;
             display: grid;
             grid-template-columns: 380px 1fr;
             gap: 60px;
@@ -495,9 +498,7 @@
 
         /* Footer */
         .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
+            position: relative;
             width: 100%;
             background: rgba(13, 13, 13, 0.95);
             border-top: 1px solid var(--border);
@@ -603,6 +604,7 @@
                 grid-template-columns: 1fr;
                 gap: 40px;
                 padding-top: 100px;
+                padding-bottom: 0;
             }
 
             .profile-card {
@@ -636,7 +638,7 @@
             }
 
             .container {
-                padding-bottom: 100px;
+                padding-bottom: 0;
             }
         }
 
@@ -652,6 +654,120 @@
             .project-card {
                 padding: 24px;
             }
+        }
+
+        /* Terminal */
+        .terminal {
+            position: relative;
+            width: min(1400px, calc(100% - 40px));
+            margin: 40px auto 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px 12px 0 0;
+            overflow: hidden;
+            transition: height 0.3s ease;
+            height: 280px;
+            z-index: 1;
+        }
+
+        .terminal.collapsed {
+            height: 36px;
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            background: var(--bg-card-hover);
+            border-bottom: 1px solid var(--border);
+            cursor: none;
+            user-select: none;
+        }
+
+        .terminal-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .terminal-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+            cursor: none;
+            padding: 0 4px;
+            transition: color 0.2s;
+            font-family: inherit;
+        }
+
+        .terminal-btn:hover {
+            color: var(--accent);
+        }
+
+        .terminal-body {
+            padding: 16px;
+            height: calc(100% - 36px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 8px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .terminal-line {
+            color: var(--text-secondary);
+        }
+
+        .terminal-line.cmd {
+            color: var(--text-primary);
+        }
+
+        .terminal-line.response {
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .terminal-input-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .terminal-prompt {
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .terminal-input {
+            background: var(--bg-primary);
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 13px;
+            flex: 1;
+            cursor: none;
+            caret-color: var(--accent);
+            padding: 8px 12px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .terminal-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(255, 0, 102, 0.15);
         }
 
         /* Reduced Motion */
@@ -714,6 +830,23 @@
             <h2 class="section-title"></h2>
             <div class="title-underline"></div>
         </main>
+    </div>
+
+    <!-- Terminal -->
+    <div class="terminal" id="terminal">
+        <div class="terminal-header" id="terminalHeader">
+            <span class="terminal-title">~/deckardz46 $ terminal</span>
+            <button class="terminal-btn" id="terminalToggle">−</button>
+        </div>
+        <div class="terminal-body" id="terminalBody">
+            <div class="terminal-output" id="terminalOutput">
+                <div class="terminal-line response">Type something and hit Enter...</div>
+            </div>
+            <div class="terminal-input-line">
+                <span class="terminal-prompt">$</span>
+                <input type="text" class="terminal-input" id="terminalInput" spellcheck="false" autocomplete="off">
+            </div>
+        </div>
     </div>
 
     <!-- Footer -->
@@ -813,7 +946,7 @@
         animateCursor();
 
         // Hover states: on interactive elements, rotate to diamond
-        const interactiveElements = document.querySelectorAll('a, button, .project-card, .skill-tag');
+        const interactiveElements = document.querySelectorAll('a, button, .project-card, .skill-tag, .terminal-header, .terminal-btn');
 
         interactiveElements.forEach(el => {
             el.addEventListener('mouseenter', () => {
@@ -846,6 +979,50 @@
         document.addEventListener('click', (e) => {
             if (!hamburger.contains(e.target) && !mobileMenu.contains(e.target)) {
                 mobileMenu.classList.remove('open');
+            }
+        });
+
+        // Terminal
+        const terminal = document.getElementById('terminal');
+        const terminalToggle = document.getElementById('terminalToggle');
+        const terminalHeader = document.getElementById('terminalHeader');
+        const terminalInput = document.getElementById('terminalInput');
+        const terminalOutput = document.getElementById('terminalOutput');
+        let isCollapsed = false;
+
+        function toggleTerminal() {
+            isCollapsed = !isCollapsed;
+            terminal.classList.toggle('collapsed', isCollapsed);
+            terminalToggle.textContent = isCollapsed ? '+' : '−';
+            if (!isCollapsed) {
+                setTimeout(() => terminalInput.focus(), 50);
+            }
+        }
+
+        terminalToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleTerminal();
+        });
+
+        terminalHeader.addEventListener('click', () => toggleTerminal());
+
+        terminalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const cmd = terminalInput.value.trim();
+                if (cmd) {
+                    const cmdLine = document.createElement('div');
+                    cmdLine.className = 'terminal-line cmd';
+                    cmdLine.textContent = '$ ' + cmd;
+                    terminalOutput.appendChild(cmdLine);
+
+                    const respLine = document.createElement('div');
+                    respLine.className = 'terminal-line response';
+                    respLine.textContent = cmd;
+                    terminalOutput.appendChild(respLine);
+
+                    terminalInput.value = '';
+                    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                }
             }
         });
     </script>
